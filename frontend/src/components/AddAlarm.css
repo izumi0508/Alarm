@@ -1,0 +1,58 @@
+/* AddAlarm.css */
+
+.add-alarm-form {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.add-alarm-form input[type="number"],
+.add-alarm-form input[type="text"] {
+  width: 80px;           /* 讓輸入框變大 */
+  height: 30px;          /* 高度增加，容易點擊 */
+  font-size: 16px;       /* 文字變大 */
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  text-align: center;    /* 數字置中 */
+}
+
+.add-alarm-form input[type="text"] {
+  width: 180px;          /* 訊息欄位比較長 */
+  text-align: left;
+}
+
+.add-alarm-form button {
+  height: 40px;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: none;
+  background-color: #4caf50;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.add-alarm-form button:hover {
+  background-color: #45a049;
+}
+
+/* 小螢幕自動換行 */
+@media (max-width: 520px) {
+  .add-alarm-form {
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .add-alarm-form input[type="number"],
+  .add-alarm-form input[type="text"],
+  .add-alarm-form button {
+    width: 90%;
+    max-width: 300px;
+  }
+}
