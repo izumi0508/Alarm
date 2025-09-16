@@ -4,6 +4,7 @@ from flask_socketio import SocketIO, emit
 import threading
 import alarm_manager
 import time
+import uuid
 
 app = Flask(__name__)
 CORS(app)
@@ -50,8 +51,8 @@ def alarm_background():
 @app.route("/delete_alarm", methods=["POST"])
 def delete_alarm():
     data = request.get_json()
-    time_str = data.get("time")
-    alarm_manager.delete_alarm(time_str)
+    alarm_id = data.get("id")
+    alarm_manager.delete_alarm(alarm_id)
     socketio.emit("alarms_update", alarm_manager.get_alarms())
     return jsonify({"status": "ok"})
 

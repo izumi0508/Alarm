@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import AddAlarm from "./components/AddAlarm";
-import { getAlarms } from "./api";
+import { getAlarms, deleteAlarm } from "./api";
 import AlarmGrid from "./components/AlarmGrid";
 import "./App.css";
 
@@ -41,23 +41,17 @@ function App() {
   }, []);
 
   // 🔹 刪除 API
-  const handleDelete = async (time) => {
+  const handleDelete = async (id) => {
     try {
-      await fetch("http://localhost:5000/delete_alarm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ time }),
-      });
-      // 刪除後可選擇直接更新前端列表
-      setAlarms(prev => prev.filter(a => a.time !== time));
+      await deleteAlarm(id); // ✅ 呼叫 API
+      setAlarms(prev => prev.filter(a => a.id !== id)); // ✅ 更新狀態
     } catch (error) {
-      console.error("刪除鬧鐘失敗:", error);
+      console.error("刪除鬧鐘失敗：", error);
     }
   };
 
   return (
     <div style={{ textAlign: "center", marginTop: "20px" }}>
-      {/* <h1>多鬧鐘系統</h1> */}
       <AddAlarm />
       <AlarmGrid alarms={alarms} onDelete={handleDelete} /> {/* ✅ 使用卡片 UI */}
     </div>

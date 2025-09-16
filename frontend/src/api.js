@@ -16,3 +16,13 @@ export async function addAlarm(hours, minutes, seconds, message) {
   if (!res.ok) throw new Error("Failed to add alarm");
   return await res.json();
 }
+
+export async function deleteAlarm(id) {   // 👈 新增刪除 API
+  const res = await fetch(`${API_URL}/delete_alarm`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id }),
+  });
+  if (!res.ok) throw new Error("Failed to delete alarm");
+  return await res.json();
+}
