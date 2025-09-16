@@ -3,10 +3,23 @@ import { io } from "socket.io-client";
 import AddAlarm from "./components/AddAlarm";
 import { getAlarms, deleteAlarm } from "./api";
 import AlarmGrid from "./components/AlarmGrid";
+import AlarmSound from "./components/AlarmSound";
 import "./App.css";
 
 // 建立 WebSocket 連線
-const socket = io("http://localhost:5000");
+const socket = io("http://127.0.0.1:5000");
+const audio = new Audio("/iosAlarm.mp3");
+audio.volume = 0;
+
+const unlockAudio = () => {
+  audio.play().catch(() => {
+    audio.pause();
+    audio.currentTime = 0;
+  });
+  document.removeEventListener("click", unlockAudio);
+};
+
+document.addEventListener("click", unlockAudio);
 
 function App() {
   const [alarms, setAlarms] = useState([]);
@@ -54,6 +67,7 @@ function App() {
     <div style={{ textAlign: "center", marginTop: "20px" }}>
       <AddAlarm />
       <AlarmGrid alarms={alarms} onDelete={handleDelete} /> {/* ✅ 使用卡片 UI */}
+      <AlarmSound alarms={alarms} />{/* ✅ 這裡插入，負責播放鈴聲 */}
     </div>
   );
 }
