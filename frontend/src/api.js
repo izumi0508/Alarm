@@ -1,5 +1,5 @@
 // 前端呼叫 Flask 後端 API 的地方
-const API_URL = "http://localhost:5000";
+const API_URL = "http://127.0.0.1:5000";
 
 export async function getAlarms() {
   const res = await fetch(`${API_URL}/alarms`);
