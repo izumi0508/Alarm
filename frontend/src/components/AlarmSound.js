@@ -1,16 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { io } from "socket.io-client";
 
-export default function AlarmSound({ alarms }) {
+export default function AlarmSound({ alarms,setAlarms}) {
     const audioRef = useRef(null);
+    
     const [soundEnabled, setSoundEnabled] = useState(() => {
         return localStorage.getItem("soundEnabled") === "true";
     });
 
-    // ⚠️ 用來防止未授權播放前就觸發
-    const [initialized, setInitialized] = useState(false);
-
-    // const socket = io("http://127.0.0.1:5000"); // ⚠️ 前端 WS 連線
+    const [unlocked, setUnlocked] = useState(false);
 
     // 切換音效開關
     const toggleSound = () => {
@@ -19,16 +16,23 @@ export default function AlarmSound({ alarms }) {
             localStorage.setItem("soundEnabled", newState);
             return newState;
         });
-        setInitialized(true);
     };
 
+      // 初次掛載，靜音播放解鎖
     useEffect(() => {
-        if (!initialized) return; // ✅ 如果開關還沒初始化，直接跳過
+        if (!unlocked) {
+            const audio = new Audio("/iosAlarm.mp3");
+            audio.volume = 0; // 靜音
+            audio.play().catch(() => console.warn("無法解鎖音效"));
+            setUnlocked(true);
+        }
+    }, [unlocked]);
 
+    useEffect(() => {
         // 🔹 使用後端 played 與 triggered
         const triggered = alarms.find(a => a.triggered && !a.played);
+        if (!triggered) return;
 
-        if (triggered && soundEnabled) {
         // 停掉前一個鈴聲
         if (audioRef.current) {
             audioRef.current.pause();
@@ -37,15 +41,26 @@ export default function AlarmSound({ alarms }) {
 
         // 建立新的 Audio 並播放
         const audio = new Audio("/iosAlarm.mp3");
+        audio.volume = soundEnabled ? 1 : 0;
         audioRef.current = audio;
-        audio.play().catch(() => {
-            console.warn("無法播放音效，可能是瀏覽器限制或使用者未授權");
-        });
+        audio.play().catch(() => console.warn("無法播放音效"));
 
         // ✅ 播放後通知後端
-        fetch(`/mark_played/${triggered.id}`, { method: "POST" }).catch(console.error);
-        }
-    }, [alarms, soundEnabled, initialized]);
+        fetch(`http://127.0.0.1:5000/mark_played/${triggered.id}`, { method: "POST" })
+            .then(res => res.json())
+            .then(() => {
+            // 更新前端 state
+                setAlarms(prev =>
+                    prev.map(a => (a.id === triggered.id ? { ...a, played: true } : a))
+                );
+            })
+            .catch(err => console.error(err));
+
+        setTimeout(() => {
+            audio.pause();
+            audio.currentTime = 0;
+        }, 5000);
+    }, [alarms, soundEnabled, setAlarms]);
 
     // 這裡回傳一個開關按鈕，UI 可以放到右上角
     return (

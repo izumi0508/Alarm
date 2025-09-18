@@ -18,7 +18,7 @@ def init_socketio(sio):
     socketio = sio
 
 def add_alarm(seconds_from_now, message):
-    """新增鬧鐘"""
+    #新增鬧鐘
     trigger_time = datetime.now() + timedelta(seconds=seconds_from_now)
     alarm_id = str(uuid.uuid4())  # 唯一 ID
 
@@ -33,7 +33,7 @@ def add_alarm(seconds_from_now, message):
     print(f"⏰ 鬧鐘已設定：{message} → {trigger_time}")
 
 def get_alarms():
-    """取得所有鬧鐘清單，依剩餘時間排序，避免 datetime 序列化錯誤"""
+    # """取得所有鬧鐘清單，依剩餘時間排序，避免 datetime 序列化錯誤"""
     now = datetime.now()
     with alarms_lock:
         alarm_list = []
@@ -50,7 +50,7 @@ def get_alarms():
     return sorted(alarm_list, key=lambda a: a["remaining_seconds"])
 
 def check_and_trigger():
-    """檢查是否有鬧鐘觸發，triggered 後保留 retain_after_trigger 秒"""
+    # """檢查是否有鬧鐘觸發，triggered 後保留 retain_after_trigger 秒"""
     updated = False
     now = datetime.now()
     with alarms_lock:
@@ -58,19 +58,16 @@ def check_and_trigger():
             if alarm["triggered_time"] is None and now >= alarm["trigger_time"]:
                 alarm["triggered_time"] = now
                 print(f"🔔 鬧鐘觸發！ {alarm['message']}")
+                alarm["triggered"] = True
                 updated = True
         #移除已觸發且超過 retain_after_trigger 秒的鬧鐘
         retain_after_trigger = 300 
-        alarms[:] = [
-            a for a in alarms
-            if not (a["triggered_time"] and (now - a["triggered_time"]).total_seconds() > retain_after_trigger)
-        ]
+        alarms[:] = [a for a in alarms if not (a["triggered_time"] and (now - a["triggered_time"]).total_seconds() > retain_after_trigger)]
 
     # ✅ 如果有更新，主動推送到所有前端
     if updated and socketio:
         socketio.emit("alarms_update", get_alarms())
 
-    time.sleep(1)
     return updated
 
 def mark_played(alarm_id):

@@ -24,6 +24,7 @@ function App() {
   };
 
   useEffect(() => {
+    
     //初始化：抓一次後端鬧鐘
     refreshAlarms();
 
@@ -80,7 +81,7 @@ function App() {
     <div style={{ textAlign: "center", marginTop: "20px" }}>
       <AddAlarm />
       <AlarmGrid alarms={alarms} onDelete={handleDelete} /> {/* ✅ 使用卡片 UI */}
-      <AlarmSound alarms={alarms} />{/* ✅ 這裡插入，負責播放鈴聲 */}
+      <AlarmSound alarms={alarms} setAlarms={setAlarms} />{/* ✅ 這裡插入，負責播放鈴聲 */}
     </div>
   );
 }

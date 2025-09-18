@@ -3,12 +3,13 @@ from flask_cors import CORS
 from flask_socketio import SocketIO, emit
 import threading
 import alarm_manager
-import time
-import uuid
 
 app = Flask(__name__)
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
+
+# 初始化 alarm_manager 的 socketio
+alarm_manager.init_socketio(socketio)
 
 @app.route("/add_alarm", methods=["POST"])
 def add_alarm():    
@@ -36,18 +37,6 @@ def add_alarm():
 def list_alarms():
     return jsonify(alarm_manager.get_alarms())
 
-def alarm_background():
-    #背景檢查鬧鐘，並推送更新
-    while True:
-        try:
-            updated = alarm_manager.check_and_trigger()
-            if updated:
-                # 有鬧鐘觸發 → 推送最新清單
-                socketio.emit("alarms_update", alarm_manager.get_alarms())
-        except Exception as e:
-            print("alarm_background error:", e)
-
-
 @app.route("/delete_alarm", methods=["POST"])
 def delete_alarm():
     data = request.get_json()
@@ -59,7 +48,25 @@ def delete_alarm():
 @app.route("/mark_played/<alarm_id>", methods=["POST"])
 def mark_played_route(alarm_id):
     alarm_manager.mark_played(alarm_id)
+    # 播放後立即推送更新給前端
+    socketio.emit("alarms_update", alarm_manager.get_alarms())
     return {"status":"ok"}
 
+@socketio.on("request_alarms")
+def handle_request_alarms():
+    emit("alarms_update", alarm_manager.get_alarms())
+
+# 背景 thread 持續檢查鬧鐘
+def alarm_background():
+    while True:
+        try:
+            updated = alarm_manager.check_and_trigger()
+            # background sleep 1 秒
+            import time
+            time.sleep(1)
+        except Exception as e:
+            print("alarm_background error:", e, flush=True)
+
 if __name__ == "__main__":
+    threading.Thread(target=alarm_background, daemon=True).start()
     socketio.run(app, host="0.0.0.0", port=5000, debug=True)
