@@ -15,7 +15,11 @@ function App() {
   // 🔹 新增函式：從後端抓最新鬧鐘
   const refreshAlarms = () => {
     getAlarms()
-      .then(data => setAlarms(data.sort((a, b) => a.remaining_seconds - b.remaining_seconds)))
+      .then(data =>
+        setAlarms(
+          data.sort((a, b) => a.remaining_seconds - b.remaining_seconds)
+        )
+      )
       .catch(console.error);
   };
 
@@ -30,15 +34,16 @@ function App() {
 
     // 每秒更新剩餘秒數（使用系統時間計算，避免降頻誤差）
     const interval = setInterval(() => {
-      setAlarms(prev => {
-        const now = Date.now(); // 現在時間的 timestamp
-        const updated = prev.map(a => {
-          const triggerTime = new Date(a.time).getTime(); // 將後端傳來的 time 字串轉成 timestamp
-          const remaining_seconds = Math.max(0, Math.round((triggerTime - now) / 1000));
-          return { ...a, remaining_seconds };
-        });
-        return updated.sort((a, b) => a.remaining_seconds - b.remaining_seconds);
-      });
+      const now = Date.now();
+      setAlarms(prev =>
+        prev.map(a => {
+          const remaining = Math.max(
+            0,
+            Math.round((new Date(a.time).getTime() - now) / 1000)
+          );
+          return { ...a, remaining_seconds: remaining };
+        })
+      );
     }, 1000);
 
     //補丁：監聽分頁切換/獲得焦點
@@ -56,14 +61,16 @@ function App() {
     return () => {
       socket.off("alarms_update");
       clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", handleFocus);
     };
   }, []);
 
   // 🔹 刪除 API
   const handleDelete = async (id) => {
     try {
-      await deleteAlarm(id); // ✅ 呼叫 API
-      setAlarms(prev => prev.filter(a => a.id !== id)); // ✅ 更新狀態
+      await deleteAlarm(id);
+      refreshAlarms(); // ✅ 刪除後跟後端同步
     } catch (error) {
       console.error("刪除鬧鐘失敗：", error);
     }

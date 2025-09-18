@@ -56,7 +56,10 @@ def delete_alarm():
     socketio.emit("alarms_update", alarm_manager.get_alarms())
     return jsonify({"status": "ok"})
 
+@app.route("/mark_played/<alarm_id>", methods=["POST"])
+def mark_played_route(alarm_id):
+    alarm_manager.mark_played(alarm_id)
+    return {"status":"ok"}
+
 if __name__ == "__main__":
-    t = threading.Thread(target=alarm_background, daemon=True)
-    t.start()
     socketio.run(app, host="0.0.0.0", port=5000, debug=True)
