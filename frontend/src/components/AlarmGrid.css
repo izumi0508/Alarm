@@ -124,7 +124,4 @@
   .alarm-grid {
     grid-template-columns: 1fr;
   }
-  .alarm-time {
-    /* font-size: 18px; */
-  }
 }

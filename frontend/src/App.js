@@ -8,18 +8,6 @@ import "./App.css";
 
 // 建立 WebSocket 連線
 const socket = io("http://127.0.0.1:5000");
-const audio = new Audio("/iosAlarm.mp3");
-audio.volume = 0;
-
-const unlockAudio = () => {
-  audio.play().catch(() => {
-    audio.pause();
-    audio.currentTime = 0;
-  });
-  document.removeEventListener("click", unlockAudio);
-};
-
-document.addEventListener("click", unlockAudio);
 
 function App() {
   const [alarms, setAlarms] = useState([]);

@@ -15,6 +15,9 @@ function AddAlarm() {
     const m = Number(minute) || 0;
     const s = Number(second) || 0;
 
+    // ✅ 防手賤：如果時間都是 0，就直接返回，不新增鬧鐘
+    if (h === 0 && m === 0 && s === 0) return;
+
     await addAlarm(h, m, s, message || "提醒");
     setHour(""); setMinute(""); setSecond(""); setMessage("");
   };
