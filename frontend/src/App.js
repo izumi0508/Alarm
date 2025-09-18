@@ -12,11 +12,16 @@ const socket = io("http://127.0.0.1:5000");
 function App() {
   const [alarms, setAlarms] = useState([]);
 
+  // 🔹 新增函式：從後端抓最新鬧鐘
+  const refreshAlarms = () => {
+    getAlarms()
+      .then(data => setAlarms(data.sort((a, b) => a.remaining_seconds - b.remaining_seconds)))
+      .catch(console.error);
+  };
+
   useEffect(() => {
     // 1️⃣ 初始化：抓一次後端鬧鐘
-    getAlarms()
-      .then(setAlarms)
-      .catch(console.error);
+    refreshAlarms();
 
     // 2️⃣ WebSocket 接收新增/觸發鬧鐘事件
     socket.on("alarms_update", (data) => {
