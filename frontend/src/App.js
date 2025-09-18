@@ -20,21 +20,23 @@ function App() {
   };
 
   useEffect(() => {
-    // 1️⃣ 初始化：抓一次後端鬧鐘
+    //初始化：抓一次後端鬧鐘
     refreshAlarms();
 
-    // 2️⃣ WebSocket 接收新增/觸發鬧鐘事件
+    //WebSocket 接收新增/觸發鬧鐘事件
     socket.on("alarms_update", (data) => {
       setAlarms(data.sort((a, b) => a.remaining_seconds - b.remaining_seconds));
     });
 
-    // 每秒倒數
+    // 每秒更新剩餘秒數（使用系統時間計算，避免降頻誤差）
     const interval = setInterval(() => {
       setAlarms(prev => {
-        const updated = prev.map(a => ({
-          ...a,
-          remaining_seconds: Math.max(0, a.remaining_seconds - 1)
-        }));
+        const now = Date.now(); // 現在時間的 timestamp
+        const updated = prev.map(a => {
+          const triggerTime = new Date(a.time).getTime(); // 將後端傳來的 time 字串轉成 timestamp
+          const remaining_seconds = Math.max(0, Math.round((triggerTime - now) / 1000));
+          return { ...a, remaining_seconds };
+        });
         return updated.sort((a, b) => a.remaining_seconds - b.remaining_seconds);
       });
     }, 1000);
