@@ -21,7 +21,7 @@ export default function AlarmGrid({ alarms = [], onDelete }) {
   return (
     <div className="alarm-grid">
       {sorted.map((a) => {
-        const isTriggered = a.triggered;
+        const isTriggered = a.remaining_seconds === 0;
         return (
           <div className="alarm-card" key={a.id}>
             <div>

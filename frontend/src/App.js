@@ -34,6 +34,17 @@ function App() {
       });
     }, 1000);
 
+    //補丁：監聽分頁切換/獲得焦點
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        refreshAlarms();
+      }
+    };
+    const handleFocus = () => refreshAlarms();
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", handleFocus);
+
     // 清理
     return () => {
       socket.off("alarms_update");
