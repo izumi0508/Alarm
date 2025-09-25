@@ -1,85 +1,90 @@
 import { useEffect, useRef, useState } from "react";
 
-export default function AlarmSound({ alarms,setAlarms}) {
+// 從 props 中移除了 setAlarms
+export default function AlarmSound({ alarms }) { 
     const audioRef = useRef(null);
     
-    const [soundEnabled, setSoundEnabled] = useState(() => {
-        return localStorage.getItem("soundEnabled") === "true";
-    });
-
-    const [unlocked, setUnlocked] = useState(false);
+    const [soundEnabled, setSoundEnabled] = useState(
+        // 初始化時從 localStorage 讀取設定
+        () => localStorage.getItem("soundEnabled") === "true"
+    );
+    const [unlocked, setUnlocked] = useState(
+        // 初始化時從 localStorage 讀取設定
+        () => localStorage.getItem("unlocked") === "true"
+    );
 
     // 切換音效開關
     const toggleSound = () => {
-        setSoundEnabled(prev => {
-            const newState = !prev;
-            localStorage.setItem("soundEnabled", newState);
-            return newState;
-        });
+        const newState = !soundEnabled;
+        setSoundEnabled(newState);
+        localStorage.setItem("soundEnabled", newState);
+
+        // 如果是首次啟用音效，嘗試播放一個靜音音訊來「解鎖」瀏覽器
+        if (!unlocked && newState) {
+            const audio = new Audio("/iosAlarm.mp3");
+            audio.volume = 0;
+            audio.play().then(() => {
+                setUnlocked(true);
+                localStorage.setItem("unlocked", "true");
+                console.log("🔊 音訊播放已解鎖");
+            }).catch(() => {
+                console.warn("用戶未與頁面互動，無法自動解鎖音訊");
+            });
+        }
     };
 
-      // 初次掛載，靜音播放解鎖
     useEffect(() => {
-        if (!unlocked) {
-            const audio = new Audio("/iosAlarm.mp3");
-            audio.volume = 0; // 靜音
-            audio.play().catch(() => console.warn("無法解鎖音效"));
-            setUnlocked(true);
+        // 尋找已觸發但尚未播放過聲音的鬧鐘
+        const triggeredAlarm = alarms.find(a => a.triggered && !a.played);
+
+        if (triggeredAlarm && soundEnabled) {
+            console.log(`🔔 偵測到觸發的鬧鐘: ${triggeredAlarm.message}`);
+            
+            // 確保不會重複播放
+            if (audioRef.current && !audioRef.current.paused) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+            }
+
+            // 建立新的 Audio 物件並播放
+            const audio = new Audio("/iosAlarm.mp3"); // 確保 public 資料夾有這個檔案
+            audio.volume = 1;
+            audio.loop = true; // 讓鈴聲循環播放直到被停止
+            audioRef.current = audio;
+
+            audio.play().catch(e => console.error("播放音效失敗:", e));
+
+            // 通知後端這個鬧鐘的聲音已經開始播放了
+            fetch(`http://127.0.0.1:5000/mark_played/${triggeredAlarm.id}`, { method: "POST" })
+                .catch(err => console.error("標記已播放失敗:", err));
+            
+            // 播放一段時間後自動停止，避免無限響鈴
+            const stopTimeout = setTimeout(() => {
+                if (audioRef.current) {
+                    audioRef.current.pause();
+                    audioRef.current.currentTime = 0;
+                    audioRef.current = null;
+                    console.log(`🔇 自動停止鬧鐘鈴聲: ${triggeredAlarm.message}`);
+                }
+            }, 10000); // 播放 10 秒後停止
+
+            // 清理函式：當鬧鐘列表變化或組件卸載時停止鈴聲
+            return () => {
+                clearTimeout(stopTimeout);
+                if (audioRef.current) {
+                    audioRef.current.pause();
+                    audioRef.current = null;
+                }
+            };
         }
-    }, [unlocked]);
+    }, [alarms, soundEnabled]);
 
-    useEffect(() => {
-        // 🔹 使用後端 played 與 triggered
-        const triggered = alarms.find(a => a.triggered && !a.played);
-        if (!triggered) return;
-
-        // 停掉前一個鈴聲
-        if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.currentTime = 0;
-        }
-
-        // 建立新的 Audio 並播放
-        const audio = new Audio("/iosAlarm.mp3");
-        audio.volume = soundEnabled ? 1 : 0;
-        audioRef.current = audio;
-        audio.play().catch(() => console.warn("無法播放音效"));
-
-        // ✅ 播放後通知後端
-        fetch(`http://127.0.0.1:5000/mark_played/${triggered.id}`, { method: "POST" })
-            .then(res => res.json())
-            .then(() => {
-            // 更新前端 state
-                setAlarms(prev =>
-                    prev.map(a => (a.id === triggered.id ? { ...a, played: true } : a))
-                );
-            })
-            .catch(err => console.error(err));
-
-        setTimeout(() => {
-            audio.pause();
-            audio.currentTime = 0;
-        }, 5000);
-    }, [alarms, soundEnabled, setAlarms]);
-
-    // 這裡回傳一個開關按鈕，UI 可以放到右上角
     return (
         <button
-        onClick={toggleSound}
-        style={{
-            position: "fixed",
-            top: "10px",
-            right: "10px",
-            zIndex: 9999,
-            padding: "5px 10px",
-            borderRadius: "5px",
-            background: soundEnabled ? "green" : "gray",
-            color: "white",
-            border: "none",
-            cursor: "pointer",
-        }}
+            onClick={toggleSound}
+            className={`sound-toggle-btn ${soundEnabled ? 'enabled' : 'disabled'}`}
         >
-        {soundEnabled ? "音效開啟" : "音效關閉"}
+            {soundEnabled ? "🔊 音效開啟" : "🔇 音效關閉"}
         </button>
     );
 }

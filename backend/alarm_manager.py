@@ -1,8 +1,9 @@
+'''
 import time
 import uuid
 import threading
 from datetime import datetime, timedelta
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO, emit
 
 # 🔒 全域鎖，保護 alarms 列表
 alarms_lock = threading.Lock()
@@ -45,7 +46,7 @@ def get_alarms():
                 "message": alarm["message"],
                 "remaining_seconds": remaining,
                 "triggered": alarm["triggered_time"] is not None,
-                "played": alarm["played"]  # ✅ 後端同步前端播放狀態
+                "played": alarm["played"]
             })
     return sorted(alarm_list, key=lambda a: a["remaining_seconds"])
 
@@ -58,7 +59,6 @@ def check_and_trigger():
             if alarm["triggered_time"] is None and now >= alarm["trigger_time"]:
                 alarm["triggered_time"] = now
                 print(f"🔔 鬧鐘觸發！ {alarm['message']}")
-                alarm["triggered"] = True
                 updated = True
         #移除已觸發且超過 retain_after_trigger 秒的鬧鐘
         retain_after_trigger = 300 
@@ -76,6 +76,8 @@ def mark_played(alarm_id):
             if alarm["id"] == alarm_id:
                 alarm["played"] = True
                 break
+    if socketio:
+        socketio.emit("alarms_update", get_alarms())
 
 def delete_alarm(alarm_id):
     """手動刪除鬧鐘 (找到就刪，立即跳出)"""
@@ -85,3 +87,6 @@ def delete_alarm(alarm_id):
                 del alarms[i]
                 print(f"❌ 刪除鬧鐘 id={alarm_id}")
                 break
+    if socketio:
+        socketio.emit("alarms_update", get_alarms())
+'''
